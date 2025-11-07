@@ -54,7 +54,13 @@ namespace WinFormsApp2
 
             // tek word yazılanlar
             numDiscount.ValueChanged += (s, ev) => WriteAndNotify(15, (ushort)numDiscount.Value);
-            numPaidAmount.ValueChanged += (s, ev) => WriteAndNotifyFloat(13, (float)numPaidAmount.Value);
+            numPaidAmount.ValueChanged += (s, ev) =>
+            {
+                if (updatingUI) return;
+
+                float paidFloat = ToPaidAmountFloat(numPaidAmount.Value);
+                WriteAndNotifyFloat(13, paidFloat);
+            };
             numCurrency.ValueChanged += (s, ev) => WriteAndNotify(21, (ushort)numCurrency.Value);
 
             // program fiyatları
@@ -371,7 +377,8 @@ namespace WinFormsApp2
 
                 uint paidRaw = (uint)((store.HoldingRegisters[14] << 16) | store.HoldingRegisters[13]);
                 float paidFloat = BitConverter.Int32BitsToSingle(unchecked((int)paidRaw));
-                decimal paidValue = (!float.IsNaN(paidFloat) && !float.IsInfinity(paidFloat)) ? (decimal)paidFloat : 0m;
+                float sanitizedPaid = (!float.IsNaN(paidFloat) && !float.IsInfinity(paidFloat)) ? paidFloat : 0f;
+                decimal paidValue = decimal.Round((decimal)sanitizedPaid, 2, MidpointRounding.AwayFromZero);
                 uint discount = (uint)((store.HoldingRegisters[16] << 16) | store.HoldingRegisters[15]);
                 numPaidAmount.Value = ClampToRange(paidValue, numPaidAmount.Minimum, numPaidAmount.Maximum);
                 numDiscount.Value = ClampToRange(discount, numDiscount.Minimum, numDiscount.Maximum);
@@ -400,6 +407,12 @@ namespace WinFormsApp2
             {
                 updatingUI = false;
             }
+        }
+
+        private float ToPaidAmountFloat(decimal value)
+        {
+            decimal rounded = decimal.Round(value, 2, MidpointRounding.AwayFromZero);
+            return (float)rounded;
         }
 
         private decimal ClampToRange(decimal value, decimal min, decimal max)
