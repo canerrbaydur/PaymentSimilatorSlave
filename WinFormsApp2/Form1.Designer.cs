@@ -106,7 +106,14 @@ namespace WinFormsApp2
             numDiscount = new NumericUpDown { Location = new Point(120, 28), Maximum = 9999, Width = 100 };
 
             Label lblPaid = new Label { Text = "Paid Amount:", Location = new Point(250, 30) };
-            numPaidAmount = new NumericUpDown { Location = new Point(350, 28), Maximum = 9999, Width = 100 };
+            numPaidAmount = new NumericUpDown
+            {
+                Location = new Point(350, 28),
+                Maximum = 9999,
+                DecimalPlaces = 2,
+                Increment = 0.01M,
+                Width = 100
+            };
 
             Label lblRemain = new Label { Text = "Remaining Time:", Location = new Point(20, 70) };
             txtRemainingTime = new TextBox { Location = new Point(120, 68), Width = 100, ReadOnly = true };

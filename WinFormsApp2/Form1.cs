@@ -54,7 +54,7 @@ namespace WinFormsApp2
 
             // tek word yazılanlar
             numDiscount.ValueChanged += (s, ev) => WriteAndNotify(15, (ushort)numDiscount.Value);
-            numPaidAmount.ValueChanged += (s, ev) => WriteAndNotify(13, (ushort)numPaidAmount.Value);
+            numPaidAmount.ValueChanged += (s, ev) => WriteAndNotifyFloat(13, (float)numPaidAmount.Value);
             numCurrency.ValueChanged += (s, ev) => WriteAndNotify(21, (ushort)numCurrency.Value);
 
             // program fiyatları
@@ -137,6 +137,7 @@ namespace WinFormsApp2
                 store.HoldingRegisters[11] = 0;
                 store.HoldingRegisters[12] = 0;
                 store.HoldingRegisters[13] = 0;
+                store.HoldingRegisters[14] = 0;
                 store.HoldingRegisters[15] = 0;
                 store.HoldingRegisters[17] = 0;
                 store.HoldingRegisters[19] = 0;
@@ -228,6 +229,12 @@ namespace WinFormsApp2
                 }
             }
             ForceSlaveRefresh();
+        }
+
+        private void WriteAndNotifyFloat(int reg, float value)
+        {
+            uint raw = unchecked((uint)BitConverter.SingleToInt32Bits(value));
+            WriteAndNotify32(reg, raw);
         }
 
         private void ForceSlaveRefresh()
@@ -362,9 +369,11 @@ namespace WinFormsApp2
                     _ => evt.ToString()
                 };
 
-                uint paid = (uint)((store.HoldingRegisters[14] << 16) | store.HoldingRegisters[13]);
+                uint paidRaw = (uint)((store.HoldingRegisters[14] << 16) | store.HoldingRegisters[13]);
+                float paidFloat = BitConverter.Int32BitsToSingle(unchecked((int)paidRaw));
+                decimal paidValue = (!float.IsNaN(paidFloat) && !float.IsInfinity(paidFloat)) ? (decimal)paidFloat : 0m;
                 uint discount = (uint)((store.HoldingRegisters[16] << 16) | store.HoldingRegisters[15]);
-                numPaidAmount.Value = ClampToRange(paid, numPaidAmount.Minimum, numPaidAmount.Maximum);
+                numPaidAmount.Value = ClampToRange(paidValue, numPaidAmount.Minimum, numPaidAmount.Maximum);
                 numDiscount.Value = ClampToRange(discount, numDiscount.Minimum, numDiscount.Maximum);
                 numCurrency.Value = ClampToRange(store.HoldingRegisters[21], numCurrency.Minimum, numCurrency.Maximum);
 
