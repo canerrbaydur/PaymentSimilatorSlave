@@ -54,7 +54,14 @@ namespace WinFormsApp2
 
             // tek word yazılanlar
             numDiscount.ValueChanged += (s, ev) => WriteAndNotify(15, (ushort)numDiscount.Value);
-            numPaidAmount.ValueChanged += (s, ev) => WriteAndNotify(13, (ushort)numPaidAmount.Value);
+            numPaidAmount.ValueChanged += (s, ev) =>
+            {
+                if (updatingUI) return;
+
+                float paidValue = (float)numPaidAmount.Value;
+                uint raw = BitConverter.ToUInt32(BitConverter.GetBytes(paidValue), 0);
+                WriteAndNotify32(13, raw);
+            };
             numCurrency.ValueChanged += (s, ev) => WriteAndNotify(21, (ushort)numCurrency.Value);
 
             // program fiyatları
@@ -362,7 +369,8 @@ namespace WinFormsApp2
                     _ => evt.ToString()
                 };
 
-                uint paid = (uint)((store.HoldingRegisters[14] << 16) | store.HoldingRegisters[13]);
+                uint paidRaw = (uint)((store.HoldingRegisters[14] << 16) | store.HoldingRegisters[13]);
+                decimal paid = ConvertRegisterFloatToDecimal(paidRaw);
                 uint discount = (uint)((store.HoldingRegisters[16] << 16) | store.HoldingRegisters[15]);
                 numPaidAmount.Value = ClampToRange(paid, numPaidAmount.Minimum, numPaidAmount.Maximum);
                 numDiscount.Value = ClampToRange(discount, numDiscount.Minimum, numDiscount.Maximum);
@@ -390,6 +398,23 @@ namespace WinFormsApp2
             finally
             {
                 updatingUI = false;
+            }
+        }
+
+        private decimal ConvertRegisterFloatToDecimal(uint rawValue)
+        {
+            float floatValue = BitConverter.ToSingle(BitConverter.GetBytes(rawValue), 0);
+
+            if (float.IsNaN(floatValue) || float.IsInfinity(floatValue))
+                return 0m;
+
+            try
+            {
+                return (decimal)floatValue;
+            }
+            catch (OverflowException)
+            {
+                return floatValue > 0 ? decimal.MaxValue : decimal.MinValue;
             }
         }
 
